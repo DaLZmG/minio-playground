@@ -1,0 +1,25 @@
+###
+post http://localhost:3000/uploadFile
+Content-Type: application/json
+
+{
+  "fileName": "README.md",
+  "filePath": "./README.md"
+}
+
+###
+post http://localhost:3000/downloadFile
+Content-Type: application/json
+
+{
+  "fileName": "README.md",
+  "filePath": "./tmp/README.md"
+}
+
+###
+get http://localhost:3000/listFiles
+Content-Type: application/json
+
+{
+  "bucket": "testbucket1"
+}

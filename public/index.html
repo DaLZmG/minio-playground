@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minio Testing</title>
+
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="font-sans text-lg">
+  <!-- Creating buckets -->
+  <div class="p-8">
+    <div class="w-1/2 m-auto text-center p-4 border-2 border-slate-300 rounded-md ">
+      <p class="my-4 font-bold text-slate-600">Bucket creating:</p>
+      <div class="">
+        <input class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300 placeholder:italic"
+          type="text" name="newBucketName" id="newBucketName" placeholder="New bucket name">
+      </div>
+      <div class="">
+        <button class="mt-4 p-2 m-auto w-2/4 bg-slate-300 rounded-md text-slate-600 font-bold" id="createBucketButton"
+          onclick="startCreatingBucket()">Create bucket</button>
+      </div>
+      <p class="my-2 py-2 w-full text-center italic hidden" id="bucketCreationInfoText" name="bucketCreationInfoText">
+      </p>
+    </div>
+  </div>
+
+  <!-- Uploading -->
+  <div class="p-8">
+    <div class="w-1/2 m-auto text-center p-4 border-2 border-slate-300 rounded-md ">
+      <p class="my-4 font-bold text-slate-600">File Uploading:</p>
+      <div class="">
+        <p class="text-slate-600 text-left">Select bucket where upload:</p>
+        <select class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300" name="uploadBucket"
+          id="uploadBucket"></select>
+        <input
+          class="cursor-pointer rounded-md border-2 border-slate-300 block w-full my-2 file:p-2 file:border-0 file:bg-slate-300 file:text-slate-600 file:font-bold"
+          type="file" name="fileSelected" id="fileSelected">
+        <input class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300 placeholder:italic"
+          type="text" name="upFileName" id="upFileName" placeholder="Nuevo nombre para el archivo">
+        <input class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300 placeholder:italic"
+          type="text" name="upFolderName" id="upFolderName" placeholder="Directorio">
+      </div>
+      <div class="">
+        <button class="mt-4 p-2 m-auto w-2/4 bg-slate-300 rounded-md text-slate-600 font-bold"
+          onclick="startUploading()">Upload
+          file</button>
+      </div>
+      <p class="my-2 py-2 w-full text-center italic hidden" id="fileUploadingInfoText" name="fileUploadingInfoText"></p>
+    </div>
+  </div>
+
+  <!-- Donwloading -->
+  <div class="p-8">
+    <div class="w-1/2 m-auto text-center p-4 border-2 border-slate-300 rounded-md ">
+      <p class="my-4 font-bold text-slate-600">File Donwloading:</p>
+      <div class="">
+        <p class="my-2 text-slate-600 text-left">Select bucket where donwload:</p>
+        <select class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300"
+          name="downloadBucket" id="downloadBucket"></select>
+        <p class="my-2 text-slate-600 text-left">Select file to donwload:</p>
+        <select class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300" name="downloadFile"
+          id="downloadFile"></select>
+      </div>
+      <div class="">
+        <button class="mt-4 p-2 m-auto w-2/4 bg-slate-300 rounded-md text-slate-600 font-bold"
+          onclick="startDownloading()">Donwload file</button>
+      </div>
+      <p class="my-2 py-2 w-full text-center italic hidden" id="fileDownloadingInfoText" name="fileDownloadingInfoText">
+    </div>
+  </div>
+
+  <!-- Deleting -->
+  <div class="p-8">
+    <div class="w-1/2 m-auto text-center p-4 border-2 border-slate-300 rounded-md ">
+      <p class="my-4 font-bold text-slate-600">File Deleting:</p>
+      <div class="">
+        <p class="my-2 text-slate-600 text-left">Select bucket where delete:</p>
+        <select class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300" name="deleteBucket"
+          id="deleteBucket"></select>
+        <p class="my-2 text-slate-600 text-left">Select file to delete:</p>
+        <select class="my-2 w-full p-2 active:border-slate-300 border-2 rounded-md border-slate-300" name="deleteFile"
+          id="deleteFile"></select>
+      </div>
+      <div class="">
+        <button class="mt-4 p-2 m-auto w-2/4 bg-slate-300 rounded-md text-slate-600 font-bold" id="deleteFileButton"
+          onclick="startUploading()">Donwload file</button>
+      </div>
+      <p class="my-2 py-2 w-full text-center italic hidden" id="fileDeletingInfoText" name="fileDeletingInfoText">
+    </div>
+  </div>
+
+
+</body>
+
+<script>
+  function showInfo(infoTextElName, infoText, isError = false) {
+    const infoTextElment = document.getElementById(infoTextElName);
+
+    const errorTextColor = "text-red-400";
+    const regularTextColor = "text-green-400";
+
+    if (isError) {
+      infoTextElment.classList.remove(regularTextColor);
+      infoTextElment.classList.add(errorTextColor);
+    } else {
+      infoTextElment.classList.add(regularTextColor);
+      infoTextElment.classList.remove(errorTextColor);
+    }
+
+    infoTextElment.classList.remove('hidden');
+    infoTextElment.innerText = infoText;
+  }
+
+
+  // Buckets
+  async function startCreatingBucket() {
+    const bucketName = document.getElementById("newBucketName");
+
+    if (bucketName.value) {
+      createBucket(bucketName.value);
+    } else {
+      console.log('You must enter a name for the new bucket');
+      showInfo("bucketCreationInfoText", "You must enter a new bucket name", true);
+    }
+  }
+
+  async function createBucket(bucketName) {
+    let data = new FormData();
+
+    data.append("bucketName", bucketName);
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: '/createBucket',
+      headers: {
+        'Content-Type': 'mulpart/form-data'
+      },
+      data: data
+    };
+
+    axios.request(config)
+      .then((resp) => {
+        showInfo("bucketCreationInfoText", resp.data);
+
+        reloadBucketSelectors();
+      })
+      .catch((error) => {
+        console.log(error);
+        showInfo("bucketCreationInfoText", 'Error:\n' + error);
+      })
+  }
+
+  async function loadBucket(bucketSelect) {
+    await getBuckets()
+      .then((resp) => {
+        bucketSelect.innerHTML = '';
+
+        const blankOpt = document.createElement('option');
+        blankOpt.disabled = true;
+        blankOpt.selected = true;
+        blankOpt.hidden = true;
+        bucketSelect.add(blankOpt);
+        for (const bucket of resp.data.data) {
+          const newOption = document.createElement('option');
+          newOption.value = bucket.name;
+          newOption.text = bucket.name;
+          bucketSelect.add(newOption);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+  }
+
+  async function getBuckets() {
+    return new Promise(async (resolve, reject) => {
+      await axios.get('/listBuckets')
+        .then((resp) => {
+          resolve(resp);
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    })
+  }
+
+  function reloadBucketSelectors() {
+    const selectBucketUp = document.getElementById("uploadBucket");
+    const selectBucketDown = document.getElementById("downloadBucket");
+    const selectBucketDel = document.getElementById("deleteBucket");
+    const selectFileDown = document.getElementById("downloadFile")
+    const selectFileDel = document.getElementById("deleteFile")
+
+    loadBucket(selectBucketUp);
+    loadBucket(selectBucketDown);
+    loadBucket(selectBucketDel);
+
+    selectBucketDown.addEventListener("change", (event) => {
+      loadFiles(selectFileDown, selectBucketDown.value)
+    });
+
+    selectBucketDel.addEventListener("change", (event) => {
+      loadFiles(selectFileDel, selectBucketDel.value)
+    });
+  }
+
+  // Files
+  async function startUploading() {
+    const bucketName = document.getElementById("uploadBucket").value;
+    const newName = document.getElementById("upFileName").value;
+    const folderName = document.getElementById("upFolderName").value;
+    const localFile = document.getElementById("fileSelected").files[0];
+
+    if (localFile && bucketName) {
+      uploadFile(bucketName, newName, folderName, localFile);
+    } else {
+      showInfo("fileUploadingInfoText", "You must select a bucket and a file to upload", true);
+    }
+  }
+
+  async function startDownloading() {
+    const bucketName = document.getElementById("downloadBucket").value;
+    const fileURL = document.getElementById("downloadFile").value;
+
+    if (bucketName && fileURL) {
+      downLoadFile(bucketName, fileURL);
+    } else {
+      showInfo("fileDownloadingInfoText", "You must select a bucket and a file to donwload", true);
+    }
+
+  }
+
+  async function uploadFile(bucketName, newName, folderName, localFile) {
+    let data = new FormData();
+
+    data.append('fileSelected', localFile);
+    data.append('bucketName', bucketName);
+    data.append('newName', newName);
+    data.append('folderName', folderName);
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: '/uploadFile',
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      data: data
+    };
+
+    axios.request(config)
+      .then((response) => {
+        // console.log(JSON.stringify(response.data));
+        showInfo("fileUploadingInfoText", "Upload complete!\n" + response.data.etag);
+      })
+      .catch((error) => {
+        console.log(error);
+        showInfo("fileUploadingInfoText", 'Error:\n' + error, true);
+      });
+  }
+
+  async function downLoadFile(bucketName, fileURL) {
+    let data = new FormData();
+
+    data.append("bucketName", bucketName);
+    data.append("fileURL", fileURL);
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: '/downloadFile',
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      data: data
+    };
+
+    axios.request(config)
+      .then((resp) => {       
+        window.showSaveFilePicker()
+          .then(async handler => {
+            let result; 
+            let writable = await handler.createWritable();
+            resp.on('data', (chunk) => {
+              result += chunk;
+            })
+            resp.on('end', async () => {
+              await writable.write(result);
+              await writable.close();
+              console.log('File downloaded and saved');
+            })
+          })
+          .catch((err) => {
+            console.error(err)
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+        showInfo("fileDownloadingInfoText", 'Error:\n' + error, true);
+      })
+  }
+
+  async function loadFiles(fileSelect, bucketName) {
+    await getFiles(bucketName)
+      .then((resp) => {
+        fileSelect.innerHTML = '';
+        for (const file of resp.data) {
+          const newOption = document.createElement('option');
+          newOption.value = file.name;
+          newOption.text = file.name + " (" + file.size + " bytes)";
+          fileSelect.add(newOption);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+  }
+
+  async function getFiles(bucketName) {
+    return new Promise(async (resolve, reject) => {
+      let formData = new FormData();
+      formData.append("bucket", bucketName);
+      await axios.get('/listFiles?bucket=' + bucketName)
+        .then((resp) => {
+          resolve(resp);
+        })
+        .catch((error) => {
+          reject(error);
+        })
+    })
+  }
+
+  document.onreadystatechange = reloadBucketSelectors();
+</script>
+
+</html>
