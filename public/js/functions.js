@@ -1,3 +1,4 @@
+// Common 
 function showInfo(infoTextElName, infoText, isError = false) {
   const infoTextElment = document.getElementById(infoTextElName);
 

@@ -27,6 +27,20 @@ const createClient = (): Promise<Minio.Client | undefined> => {
   })
 }
 
+export const initBucket = (bucketName: string): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    createBucket(bucketName)
+      .then(async (resp) => {
+        console.log(resp)
+        resolve();
+      })
+      .catch((error) => {
+        console.error(error);
+        reject();
+      })
+  })
+}
+
 export const listBuckets = (): Promise<any> => {
   return new Promise(async (resolve, reject) => {
     try {

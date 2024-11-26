@@ -1,6 +1,6 @@
-import express from "express";
+import express, { ErrorRequestHandler } from "express";
 import fileUpload from 'express-fileupload';
-import { createBucket, deleteFile, donwloadFile, getFileSteam, listBuckets, listFiles, uploadFile } from "./minio_functions";
+import { createBucket, deleteFile, donwloadFile, getFileSteam, initBucket, listBuckets, listFiles, uploadFile } from "./minio_functions";
 
 require('dotenv').config();
 const { PORT } = process.env;
@@ -9,6 +9,11 @@ const bucket1Name = 'testbucket1';
 const bucket2Name = 'testbucket2';
 
 const tempFolder = './tmp/';
+
+const errorRequestHandler: ErrorRequestHandler = (error, req, res, next) => {
+  console.log('Internal server error:', error.message);
+  res.status(500).send('Internal server error: ' + error.message);
+}
 
 export interface TypedRequestBody<T> extends Express.Request {
   params: T
@@ -25,9 +30,6 @@ app.use(fileUpload({
 
 app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-  res.status(200).send('Server working');
-})
 
 app.get('/listBuckets', async (req, res) => {
   try {
@@ -58,6 +60,10 @@ app.get('/listFiles', async (req, res) => {
   } else {
     res.status(400).send('Bad params');
   }
+})
+
+app.get('/error', (req, res) => {
+  throw new Error('Error intencionado');
 })
 
 app.post('/createBucket', async (req, res) => {
@@ -205,19 +211,12 @@ app.post('/deleteFile', async (req, res) => {
   }
 })
 
-function initBucket(bucketName: string): Promise<void> {
-  return new Promise(async (resolve, reject) => {
-    createBucket(bucketName)
-      .then(async (resp) => {
-        console.log(resp)
-        resolve();
-      })
-      .catch((error) => {
-        console.error(error);
-        reject();
-      })
-  })
-}
+app.get('*', (req, res) => {
+  console.log(req.url, 'not found');
+  res.status(404).send('Page not found');
+})
+
+app.use(errorRequestHandler);
 
 app.listen(PORT, async () => {
   try {
