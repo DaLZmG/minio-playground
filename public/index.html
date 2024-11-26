@@ -10,7 +10,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="font-sans text-lg">
+<body class="relative font-sans text-lg">
+  <div class="fixed inset-0 flex bg-slate-700 opacity-50 items-center justify-center" id="loadingSpinner" name="loadingSpinner">
+    <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
   <!-- Creating buckets -->
   <div class="p-8">
     <div class="w-1/2 m-auto text-center p-4 border-2 border-slate-300 rounded-md ">
@@ -87,7 +91,7 @@
       </div>
       <div class="">
         <button class="mt-4 p-2 m-auto w-2/4 bg-slate-300 rounded-md text-slate-600 font-bold" id="deleteFileButton"
-          onclick="startUploading()">Donwload file</button>
+          onclick="startDeleting()">Delete file</button>
       </div>
       <p class="my-2 py-2 w-full text-center italic hidden" id="fileDeletingInfoText" name="fileDeletingInfoText">
     </div>
@@ -114,7 +118,6 @@
     infoTextElment.classList.remove('hidden');
     infoTextElment.innerText = infoText;
   }
-
 
   // Buckets
   async function startCreatingBucket() {
@@ -217,7 +220,9 @@
     const localFile = document.getElementById("fileSelected").files[0];
 
     if (localFile && bucketName) {
+      loadingSpin.classList.add('hidden');
       uploadFile(bucketName, newName, folderName, localFile);
+      loadingSpin.classList.remove('hidden');
     } else {
       showInfo("fileUploadingInfoText", "You must select a bucket and a file to upload", true);
     }
@@ -233,6 +238,17 @@
       showInfo("fileDownloadingInfoText", "You must select a bucket and a file to donwload", true);
     }
 
+  }
+
+  async function startDeleting() {
+    const bucketName = document.getElementById('deleteBucket').value;
+    const fileURL = document.getElementById('deleteFile').value;
+
+    if (bucketName && fileURL) {
+      deleteFile(bucketName, fileURL);
+    } else {
+      showInfo("fileDeletingInfoText", "You must select a bucket and a file to delete", true);
+    }
   }
 
   async function uploadFile(bucketName, newName, folderName, localFile) {
@@ -274,6 +290,7 @@
       method: 'post',
       maxBodyLength: Infinity,
       url: '/downloadFile',
+      responseType: 'blob',
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -281,27 +298,54 @@
     };
 
     axios.request(config)
-      .then((resp) => {       
+      .then((resp) => {
         window.showSaveFilePicker()
-          .then(async handler => {
-            let result; 
+          .then(async (handler) => {
+            let result;
             let writable = await handler.createWritable();
-            resp.on('data', (chunk) => {
-              result += chunk;
-            })
-            resp.on('end', async () => {
-              await writable.write(result);
-              await writable.close();
-              console.log('File downloaded and saved');
-            })
+            writable.write(resp.data);
+            writable.close();
+            showInfo("fileDownloadingInfoText", 'File donwloaded', false);
           })
           .catch((err) => {
             console.error(err)
+            showInfo("fileDownloadingInfoText", 'Error:\n' + error, true);
           });
       })
       .catch((error) => {
         console.log(error);
         showInfo("fileDownloadingInfoText", 'Error:\n' + error, true);
+      })
+  }
+
+  async function deleteFile(bucketName, fileURL) {
+    let data = new FormData();
+
+    data.append("bucketName", bucketName);
+    data.append("fileURL", fileURL);
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: '/deleteFile',
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      data: data
+    };
+
+    axios.request(config)
+      .then((resp) => {
+        console.log(resp);
+        showInfo("fileDeletingInfoText", resp.data, false);
+        const selectBucketDel = document.getElementById("deleteBucket");
+        const selectFileDel = document.getElementById("deleteFile")
+        loadFiles(selectFileDel, selectBucketDel.value)
+
+      })
+      .catch((error) => {
+        console.log(error);
+        showInfo("fileDeletingInfoText", 'Error:\n' + error, true);
       })
   }
 
@@ -335,7 +379,14 @@
     })
   }
 
-  document.onreadystatechange = reloadBucketSelectors();
-</script>
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    reloadBucketSelectors();
+
+    const loadingSpin = document.getElementById('loadingSpinner');
+    loadingSpin.classList.add('hidden');
+  });
+
+  </script>
 
 </html>

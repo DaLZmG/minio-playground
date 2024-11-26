@@ -176,6 +176,40 @@ export const donwloadFile = (bucketName: string, fileName: string, filePath: str
   })
 }
 
+export const deleteFile = (bucketName: string, fileName: string):Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const myMinioClient = await createClient();
+      if (myMinioClient) {
+        myMinioClient.removeObject(bucketName, fileName)
+          .then((resp) => {
+            resolve({
+              status: 200,
+              message: `File ${fileName} deleted from ${bucketName}`,
+              data: resp
+            })
+          })
+          .catch((resp) => {
+            reject({
+              status: 400,
+              message: `Error deleting ${fileName} from ${bucketName}`,
+              data: {}
+            })
+          })
+      } else {
+        reject({
+          status: 400,
+          message: 'Error creating MinIO Client',
+        });
+      }
+    } catch (error) {
+      reject({
+        status: 500,
+        message: 'File deleting problem, ' + error
+      })
+    }  })
+}
+
 export const getFileSteam = (bucketName: string, fileName: string): Promise<any> => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -203,14 +237,17 @@ export const listFiles = (bucketName: string): Promise<any> => {
     try {
       const myMinioClient = await createClient();
       if (myMinioClient) {
-        const buckObjs = myMinioClient?.listObjects(bucketName, '', true);
+        const buckObjs = myMinioClient.listObjects(bucketName, '', true);
         let data:object[] = [];
         buckObjs.on('data', (obj) => {
           data.push(obj)
         })
         buckObjs.on('end', () => {
-          console.log(data)
-          resolve(data);
+          // console.log(data);
+          resolve({ 
+            status: 200,
+            message: 'Files listed',
+            data: data});
         })
         buckObjs.on('error', function (err) {
           console.log(err)

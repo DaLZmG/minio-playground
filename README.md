@@ -13,5 +13,15 @@ minioadmin // minioadmin
 ```
 Goto ```Access Keys```, **create a new pair** and copy their values into the ```.env``` file.
 
+This is an ```.env``` file example:
+```
+# General setup
+PORT=3000
+
+#Minio parameters
+MINIO_ACCESS_KEY=***
+MINIO_SECRET_KEY=***
+```
+
 ## Launch the server
 Use ```npm start``` to lauch the server app. 

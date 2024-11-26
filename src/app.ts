@@ -1,6 +1,6 @@
 import express from "express";
 import fileUpload from 'express-fileupload';
-import { createBucket, donwloadFile, getFileSteam, listBuckets, listFiles, uploadFile } from "./minio_functions";
+import { createBucket, deleteFile, donwloadFile, getFileSteam, listBuckets, listFiles, uploadFile } from "./minio_functions";
 
 require('dotenv').config();
 const { PORT } = process.env;
@@ -49,9 +49,8 @@ app.get('/listFiles', async (req, res) => {
   if (req.query.bucket) {
     await listFiles(req.query.bucket.toString())
       .then((resp) => {
-        // console.log(resp.status, resp.message);
         console.log(resp.status, { "message": resp.message, "data": resp.data });
-        res.status(200).send(resp);
+        res.status(200).send(resp.data);
       }).catch((resp) => {
         console.error(resp.status, { "message": resp.message, "data": resp.data });
         res.status(resp.status).send(resp);
@@ -147,8 +146,12 @@ app.post('/downloadFile', async (req, res) => {
   
       createBucket(bucketName)
         .then(async (resp) => { 
-          const ds = await getFileSteam(bucketName, fileName);
-          ds.pipe(res);
+          const dstream = await getFileSteam(bucketName, fileName);
+
+          res.setHeader('Content-Type', 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+          dstream.pipe(res);
 
           // donwloadFile(bucketName, fileName, localPath)
           //   .then((resp) => {
@@ -159,6 +162,36 @@ app.post('/downloadFile', async (req, res) => {
           //     console.error(resp.message);
           //     res.status(resp.status).send(resp.message);
           //   })
+        })
+        .catch((resp) => {
+          console.error(resp);
+          res.status(resp.status).send(resp.message);
+        })
+    } else {
+      res.status(400).send('Bad params');
+    }
+  } catch (error) {
+    res.status(500).send('Fatal error');
+  }
+})
+
+app.post('/deleteFile', async (req, res) => {
+  try {
+    if(req.body.bucketName && req.body.fileURL) {
+      const bucketName = req.body.bucketName;
+      const fileName = req.body.fileURL;
+  
+      createBucket(bucketName)
+        .then(async (resp) => { 
+          await deleteFile(bucketName, fileName)
+            .then((resp) => {
+              console.log(resp);
+              res.status(200).send(resp.message);
+            })
+            .catch((error) => {
+              console.log(error);
+              res.status(400).send(error.message);
+            })
         })
         .catch((resp) => {
           console.error(resp);
