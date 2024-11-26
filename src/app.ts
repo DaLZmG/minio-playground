@@ -142,7 +142,7 @@ app.post('/downloadFile', async (req, res) => {
     if(req.body.bucketName && req.body.fileURL) {
       const bucketName = req.body.bucketName;
       const fileName = req.body.fileURL;
-      const localPath = './tmp/' + req.body.fileURL;
+      // const localPath = './tmp/' + req.body.fileURL;
   
       createBucket(bucketName)
         .then(async (resp) => { 
